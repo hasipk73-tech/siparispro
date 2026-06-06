@@ -1018,30 +1018,40 @@ body {
   color: var(--blue-700);
 }
 .map-open-link--overlay:hover { background: var(--white); }
-.map-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  padding: 1.5rem 1rem;
-  background: var(--gray-50);
-  border: 1.5px dashed var(--gray-300);
+/* ── Map button card (no API key) ── */
+.map-btn-card {
+  border: 1.5px solid var(--blue-200);
   border-radius: var(--radius-md);
-  text-align: center;
+  background: var(--blue-50);
+  overflow: hidden;
+  margin-bottom: 0.75rem;
 }
-.map-placeholder__text {
+.map-btn-card__info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem 0.6rem;
+}
+.map-btn-card__addr {
   font-size: 0.82rem;
-  color: var(--gray-500);
-  line-height: 1.6;
+  color: var(--gray-700);
+  line-height: 1.5;
 }
-.map-placeholder__text code {
-  background: var(--gray-100);
-  padding: 0.1rem 0.35rem;
-  border-radius: 4px;
-  font-size: 0.78rem;
-  color: var(--blue-700);
+.btn-maps-open {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.7rem 1rem;
+  background: var(--blue-600);
+  color: white;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+  border-top: 1px solid var(--blue-500);
+  transition: background .15s;
 }
+.btn-maps-open:hover { background: var(--blue-700); }
 
 /* ── WhatsApp Button ── */
 .btn-whatsapp {
@@ -3026,6 +3036,116 @@ body {
 .kurye-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
 .kurye-card--beklemede { border-left-color: #f59e0b; }
 .kurye-card--yolda     { border-left-color: #3b82f6; }
+.kurye-card--expanded  { box-shadow: 0 4px 20px rgba(0,0,0,.12); }
+
+/* Summary row (always visible, clickable) */
+.kurye-card__summary {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.1rem 0;
+  user-select: none;
+}
+.kurye-card__summary-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.kurye-card__summary-right {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  color: var(--gray-400);
+}
+.kurye-card__brief-addr {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+  flex: 1;
+}
+.kurye-card__brief-product {
+  font-size: 0.78rem;
+  color: var(--gray-600);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+.kurye-card__debt-pill {
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+}
+
+/* Expanded detail section */
+.kurye-card__detail {
+  border-top: 1px solid var(--gray-100);
+  margin-top: 0.55rem;
+  padding-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.kurye-detail__row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  font-size: 0.83rem;
+  color: var(--gray-700);
+}
+.kurye-detail__val  { font-weight: 600; color: var(--gray-800); }
+.kurye-detail__sub  { font-size: 0.75rem; color: var(--gray-400); margin-top: 0.1rem; }
+.kurye-detail__call {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--blue-600);
+  text-decoration: none;
+}
+.kurye-detail__call:hover { text-decoration: underline; }
+.kurye-detail__products { display: flex; flex-direction: column; gap: 0.2rem; }
+.kurye-detail__item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--gray-700);
+}
+.kurye-detail__debt {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.65rem;
+}
+.kurye-detail__note {
+  font-size: 0.78rem;
+  color: var(--gray-500);
+  background: #fef9c3;
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.6rem;
+}
+.kurye-maps-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  background: #1d4ed8;
+  color: white;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background .15s;
+}
+.kurye-maps-btn:hover { background: #1e40af; }
 
 .kurye-card__top {
   display: flex;
