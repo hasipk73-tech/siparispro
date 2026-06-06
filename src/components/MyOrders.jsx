@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CATALOG_PRODUCTS } from "../data/catalogProducts";
+import { formatOrderTime, getCreatedMs } from "../utils/formatTime";
 
 const STATUS_STEPS = ["beklemede", "yolda", "teslim_edildi"];
 const STATUS_LABELS = {
@@ -65,7 +66,7 @@ export default function MyOrders({ orders, updateOrder, notify, phone, onNewOrde
   const norm = (p) => (p || "").replace(/\s/g, "");
   const myOrders = orders
     .filter(o => norm(o.phone) === norm(phone))
-    .sort((a, b) => new Date(b.lastDelivery) - new Date(a.lastDelivery));
+    .sort((a, b) => getCreatedMs(b) - getCreatedMs(a));
 
   const openEdit = (order) => {
     const cart = {};
@@ -170,11 +171,23 @@ export default function MyOrders({ orders, updateOrder, notify, phone, onNewOrde
           <div key={order.id} className="order-row">
             {/* Header */}
             <div className="order-row__head">
-              <span className="order-row__date">{formatDate(order.lastDelivery)}</span>
-              <StatusBadge status={order.status} />
-              <span className="delivery-chip">
-                {order.deliveryType === "gelAl" ? "Gel Al" : "Eve Teslim"}
-              </span>
+              <div className="order-row__head-left">
+                <span className="order-row__date">{formatDate(order.lastDelivery)}</span>
+                {formatOrderTime(order.createdAt) && (
+                  <span className="order-row__time">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                    </svg>
+                    {formatOrderTime(order.createdAt)}
+                  </span>
+                )}
+              </div>
+              <div className="order-row__head-right">
+                <StatusBadge status={order.status} />
+                <span className="delivery-chip">
+                  {order.deliveryType === "gelAl" ? "Gel Al" : "Eve Teslim"}
+                </span>
+              </div>
             </div>
 
             {/* Items */}

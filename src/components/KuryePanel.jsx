@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { buildMapsUrl } from "./MapView";
+import { formatOrderTime } from "../utils/formatTime";
 
 const STATUS_LABEL = {
   beklemede:     "Beklemede",
@@ -173,6 +174,16 @@ export default function KuryePanel({ auth, orders, updateOrder, onLogout }) {
                   {/* ── Genişletilmiş detay ── */}
                   {isExpanded && (
                     <div className="kurye-card__detail">
+
+                      {/* Sipariş saati */}
+                      {formatOrderTime(order.createdAt) && (
+                        <div className="kurye-detail__row">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" style={{ flexShrink: 0 }}>
+                            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                          </svg>
+                          <span className="kurye-detail__val">{formatOrderTime(order.createdAt)}</span>
+                        </div>
+                      )}
 
                       {/* Adres */}
                       <div className="kurye-detail__row">

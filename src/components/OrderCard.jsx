@@ -1,6 +1,7 @@
 import { useState } from "react";
 import OrderDetailModal from "./OrderDetailModal";
 import { statusLabels } from "../data/mockData";
+import { formatOrderTime } from "../utils/formatTime";
 
 function daysSince(dateStr) {
   const diff = new Date() - new Date(dateStr);
@@ -82,6 +83,15 @@ export default function OrderCard({ order, onUpdate }) {
                 : `${order.product?.split(" ")[0]} × ${order.amount}`}
             </span>
           </div>
+          {formatOrderTime(order.createdAt) && (
+            <div className="meta-item meta-item--time">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              <span>{formatOrderTime(order.createdAt)}</span>
+            </div>
+          )}
           <div className={`meta-item days-chip ${days >= 14 ? "days-chip--urgent" : days >= 7 ? "days-chip--warning" : "days-chip--ok"}`}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10"/>
