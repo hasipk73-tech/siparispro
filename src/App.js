@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import "./App.css";
 import { useOrders } from "./hooks/useOrders";
 import { useNotifications } from "./hooks/useNotifications";
+import { useStock } from "./hooks/useStock";
 import StatCard from "./components/StatCard";
 import NeighborhoodSection from "./components/NeighborhoodSection";
 import NotificationBanner from "./components/NotificationBanner";
@@ -12,6 +13,7 @@ import LoginPage from "./components/LoginPage";
 import GunSonuModal from "./components/GunSonuModal";
 import DebtView from "./components/DebtView";
 import WhatsAppSettings from "./components/WhatsAppSettings";
+import StockModal from "./components/StockModal";
 import { useWhatsApp } from "./hooks/useWhatsApp";
 
 const WaterLogo = () => (
@@ -56,8 +58,11 @@ export default function App() {
   const [showGunSonu, setShowGunSonu] = useState(false);
   const neighborhoods = Object.keys(grouped).sort();
 
-  const [activeTab,      setActiveTab]     = useState("catalog");
-  const [showWaSettings, setShowWaSettings] = useState(false);
+  const { closedIds, toggleProduct } = useStock();
+
+  const [activeTab,       setActiveTab]      = useState("catalog");
+  const [showWaSettings,  setShowWaSettings]  = useState(false);
+  const [showStockModal,  setShowStockModal]  = useState(false);
 
   const handleLogin  = (authData) => { setAuth(authData); setActiveTab("catalog"); };
   const handleLogout = () => setAuth(null);
@@ -124,7 +129,7 @@ export default function App() {
                   <polyline points="16 17 21 12 16 7"/>
                   <line x1="21" y1="12" x2="9" y2="12"/>
                 </svg>
-                Çıkış
+                <span className="btn-logout__text">Çıkış</span>
               </button>
             </div>
           </div>
@@ -134,6 +139,7 @@ export default function App() {
           <CustomerOrderPage
             addOrder={addOrder}
             phone={auth.phone}
+            closedIds={closedIds}
           />
         ) : (
           <MyOrders
@@ -184,6 +190,13 @@ export default function App() {
               </svg>
               WhatsApp
             </button>
+            <button className="btn-stock" onClick={() => setShowStockModal(true)} title="Stok Yönetimi">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+                <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+              </svg>
+              <span className="btn-stock__text">Stok</span>
+            </button>
             <button className="btn-gunsonu" onClick={() => setShowGunSonu(true)}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
@@ -206,7 +219,7 @@ export default function App() {
                 <polyline points="16 17 21 12 16 7"/>
                 <line x1="21" y1="12" x2="9" y2="12"/>
               </svg>
-              Çıkış
+              <span className="btn-logout__text">Çıkış</span>
             </button>
           </div>
         </div>
@@ -312,6 +325,14 @@ export default function App() {
           onSave={saveWaSettings}
           onClose={() => setShowWaSettings(false)}
           onTest={waSendTest}
+        />
+      )}
+
+      {showStockModal && (
+        <StockModal
+          closedIds={closedIds}
+          onToggle={toggleProduct}
+          onClose={() => setShowStockModal(false)}
         />
       )}
     </div>

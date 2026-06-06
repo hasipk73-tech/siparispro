@@ -1,6 +1,63 @@
 import { useState } from "react";
 import { CATALOG_PRODUCTS as PRODUCTS } from "../data/catalogProducts";
 
+function IconWaterDrop({ size = 44, color = "#2563eb" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color} opacity="0.85">
+      <path d="M12 2C6 8 4 11 4 14a8 8 0 0016 0c0-3-2-6-8-12z"/>
+    </svg>
+  );
+}
+
+function IconBottle({ size = 44, color = "#0284c7" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.6" opacity="0.85">
+      <path d="M9 2h6v2.5l2.5 3V21a1 1 0 01-1 1H7.5a1 1 0 01-1-1V7.5L9 4.5V2z"/>
+      <line x1="6.5" y1="13" x2="17.5" y2="13"/>
+      <line x1="8" y1="17" x2="16" y2="17"/>
+    </svg>
+  );
+}
+
+
+function getProductMeta(name) {
+  if (name.includes("Damacana") || name.includes("19L")) return {
+    Icon: IconWaterDrop, iconColor: "#1d4ed8",
+    waterBg: "linear-gradient(160deg,#dbeafe 0%,#93c5fd 55%,#60a5fa 100%)",
+    glow: "rgba(37,99,235,0.22)",
+  };
+  if (name.includes("Soda")) return {
+    Icon: null, emoji: "🥤", iconColor: "#16a34a",
+    waterBg: "linear-gradient(160deg,#dcfce7 0%,#86efac 55%,#4ade80 100%)",
+    glow: "rgba(22,163,74,0.18)",
+  };
+  if (name.includes("5L")) return {
+    Icon: IconBottle, iconColor: "#0369a1",
+    waterBg: "linear-gradient(160deg,#e0f2fe 0%,#7dd3fc 55%,#38bdf8 100%)",
+    glow: "rgba(2,132,199,0.2)",
+  };
+  if (name.includes("1.5L")) return {
+    Icon: IconBottle, iconColor: "#0e7490",
+    waterBg: "linear-gradient(160deg,#cffafe 0%,#67e8f9 55%,#22d3ee 100%)",
+    glow: "rgba(8,145,178,0.2)",
+  };
+  if (name.includes("0.5L")) return {
+    Icon: IconBottle, iconColor: "#0f766e",
+    waterBg: "linear-gradient(160deg,#ccfbf1 0%,#5eead4 55%,#2dd4bf 100%)",
+    glow: "rgba(13,148,136,0.2)",
+  };
+  if (name.includes("0.33L")) return {
+    Icon: IconBottle, iconColor: "#15803d",
+    waterBg: "linear-gradient(160deg,#dcfce7 0%,#86efac 55%,#4ade80 100%)",
+    glow: "rgba(22,163,74,0.2)",
+  };
+  return {
+    Icon: IconWaterDrop, iconColor: "#1d4ed8",
+    waterBg: "linear-gradient(160deg,#dbeafe 0%,#93c5fd 55%,#60a5fa 100%)",
+    glow: "rgba(37,99,235,0.18)",
+  };
+}
+
 function IconTruck() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -79,7 +136,7 @@ function profileToForm(phone) {
   };
 }
 
-export default function CustomerOrderPage({ addOrder, phone }) {
+export default function CustomerOrderPage({ addOrder, phone, closedIds = new Set() }) {
   const [deliveryType, setDeliveryType] = useState("gelAl");
   const [cart, setCart] = useState({});
   const [showCartSheet, setShowCartSheet] = useState(false);
@@ -335,46 +392,93 @@ export default function CustomerOrderPage({ addOrder, phone }) {
               const qty = cart[p.id] || 0;
               const inCart = qty > 0;
               const isGelAl = deliveryType === "gelAl";
+              const isClosed = closedIds.has(p.id);
+              const meta = getProductMeta(p.name);
               return (
-                <div key={p.id} className={`product-card${inCart ? " product-card--in-cart" : ""}`}>
-                  <div className="product-card__name">{p.name}</div>
+                <div
+                  key={p.id}
+                  className={`product-card${inCart ? " product-card--in-cart" : ""}${isClosed ? " product-card--closed" : ""}`}
+                  style={{ "--card-glow": meta.glow }}
+                >
+                  <div className="product-card__visual">
+                    {/* Animated water background */}
+                    <div className="product-card__water" style={{ background: meta.waterBg }}>
+                      <span className="water-drop wd-1" />
+                      <span className="water-drop wd-2" />
+                      <span className="water-drop wd-3" />
+                    </div>
 
-                  <div className="product-card__prices">
-                    <div className={`price-chip${isGelAl ? " price-chip--active" : ""}`}>
-                      <div className="price-chip__label">Gel Al</div>
-                      <div className="price-chip__value">{p.gelAl} ₺</div>
+                    {p.image ? (
+                      <img
+                        src={p.image}
+                        alt={p.name}
+                        className="product-card__img"
+                        onError={e => {
+                          if (p.imageFallback && e.currentTarget.src !== p.imageFallback) {
+                            e.currentTarget.src = p.imageFallback;
+                          } else {
+                            e.currentTarget.style.display = "none";
+                            e.currentTarget.nextSibling.style.display = "flex";
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <div
+                      className="product-card__img-fallback"
+                      style={{ display: p.image ? "none" : "flex" }}
+                    >
+                      {meta.emoji
+                        ? <span className="product-card__emoji">{meta.emoji}</span>
+                        : <meta.Icon size={48} color={meta.iconColor} />
+                      }
                     </div>
-                    <div className={`price-chip${!isGelAl ? " price-chip--active" : ""}`}>
-                      <div className="price-chip__label">Eve Teslim</div>
-                      <div className="price-chip__value">{p.eveTeslim} ₺</div>
-                    </div>
+                    {isClosed && (
+                      <div className="product-card__closed-overlay">
+                        <span>Stokta Yok</span>
+                      </div>
+                    )}
+                    {inCart && !isClosed && (
+                      <div className="product-card__cart-badge">
+                        <IconCheck /> Sepette
+                      </div>
+                    )}
                   </div>
 
-                  {!isGelAl && (
-                    <>
-                      <div className="product-card__qty">
-                        <button className="qty-btn" onClick={() => setQty(p.id, qty - 1)} disabled={qty === 0}>
-                          −
-                        </button>
-                        <span className="qty-value">{qty}</span>
-                        <button className="qty-btn" onClick={() => setQty(p.id, qty + 1)}>
-                          +
-                        </button>
-                      </div>
+                  <div className="product-card__info">
+                    <div className="product-card__name">{p.name}</div>
 
-                      <button
-                        className="btn-add-cart"
-                        style={inCart ? { background: "var(--green-500)" } : {}}
-                        onClick={() => { if (!inCart) setQty(p.id, 1); }}
-                      >
-                        {inCart ? (
-                          <><IconCheck /> Sepette</>
-                        ) : (
-                          <><IconPlus /> Sepete Ekle</>
-                        )}
-                      </button>
-                    </>
-                  )}
+                    <div className="product-card__prices">
+                      <div className={`price-chip${isGelAl ? " price-chip--active" : ""}`}>
+                        <div className="price-chip__label">Gel Al</div>
+                        <div className="price-chip__value">{p.gelAl} ₺</div>
+                      </div>
+                      <div className={`price-chip${!isGelAl ? " price-chip--active" : ""}`}>
+                        <div className="price-chip__label">Eve Teslim</div>
+                        <div className="price-chip__value">{p.eveTeslim} ₺</div>
+                      </div>
+                    </div>
+
+                    {!isGelAl && (
+                      isClosed ? (
+                        <button className="btn-out-of-stock" disabled>Stokta Yok</button>
+                      ) : (
+                        <>
+                          <div className="product-card__qty">
+                            <button className="qty-btn" onClick={() => setQty(p.id, qty - 1)} disabled={qty === 0}>−</button>
+                            <span className="qty-value">{qty}</span>
+                            <button className="qty-btn" onClick={() => setQty(p.id, qty + 1)}>+</button>
+                          </div>
+                          <button
+                            className="btn-add-cart"
+                            style={inCart ? { background: "var(--green-500)" } : {}}
+                            onClick={() => { if (!inCart) setQty(p.id, 1); }}
+                          >
+                            {inCart ? <><IconCheck /> Sepette</> : <><IconPlus /> Sepete Ekle</>}
+                          </button>
+                        </>
+                      )
+                    )}
+                  </div>
                 </div>
               );
             })}
