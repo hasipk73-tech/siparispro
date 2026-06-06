@@ -2866,3 +2866,311 @@ body {
   .stat-value { font-size: 1.1rem; }
   .product-grid { grid-template-columns: 1fr; }
 }
+
+/* ═══════════════════════════════════════════════
+   KURYE PANELİ
+═══════════════════════════════════════════════ */
+.kurye-panel {
+  min-height: 100vh;
+  background: #f1f5f9;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header */
+.kurye-header {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  padding: 0 1rem;
+  box-shadow: 0 2px 12px rgba(30,58,138,.3);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.kurye-header__inner {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 0;
+  gap: 1rem;
+}
+.kurye-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.kurye-header__truck {
+  width: 40px;
+  height: 40px;
+  background: rgba(255,255,255,.15);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.kurye-header__title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: white;
+  line-height: 1.2;
+}
+.kurye-header__name {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,.7);
+  font-weight: 500;
+}
+.kurye-logout {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  background: rgba(255,255,255,.12);
+  border: 1.5px solid rgba(255,255,255,.3);
+  border-radius: var(--radius-md);
+  color: rgba(255,255,255,.9);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s;
+  white-space: nowrap;
+}
+.kurye-logout:hover { background: rgba(255,255,255,.22); }
+
+/* Content area */
+.kurye-content {
+  flex: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Stats */
+.kurye-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+}
+.kurye-stat {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 0.85rem 0.5rem;
+  text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  border-top: 3px solid transparent;
+}
+.kurye-stat--beklemede { border-top-color: #f59e0b; }
+.kurye-stat--yolda     { border-top-color: #3b82f6; }
+.kurye-stat--toplam    { border-top-color: #8b5cf6; }
+.kurye-stat__num {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--gray-900);
+  line-height: 1;
+}
+.kurye-stat__label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 0.25rem;
+}
+
+/* Bölge filtresi */
+.kurye-filter {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.kurye-chip {
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--gray-300);
+  background: white;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.kurye-chip:hover { border-color: var(--blue-400); color: var(--blue-600); }
+.kurye-chip--active {
+  background: var(--blue-600);
+  border-color: var(--blue-600);
+  color: white;
+}
+
+/* Order cards */
+.kurye-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.kurye-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  box-shadow: 0 1px 6px rgba(0,0,0,.07);
+  border-left: 4px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  transition: box-shadow .15s;
+}
+.kurye-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+.kurye-card--beklemede { border-left-color: #f59e0b; }
+.kurye-card--yolda     { border-left-color: #3b82f6; }
+
+.kurye-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.kurye-card__customer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.kurye-card__cname {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+.kurye-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.kurye-badge--beklemede { background: #fef3c7; color: #92400e; }
+.kurye-badge--yolda     { background: #dbeafe; color: #1e40af; }
+
+.kurye-card__call {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--blue-600);
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--blue-200);
+  border-radius: var(--radius-sm);
+  background: var(--blue-50);
+}
+.kurye-card__call:hover { background: var(--blue-100); }
+
+.kurye-card__address,
+.kurye-card__product {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--gray-600);
+  line-height: 1.4;
+}
+.kurye-card__address svg,
+.kurye-card__product svg { flex-shrink: 0; margin-top: 1px; }
+.kurye-card__mah { color: var(--gray-400); }
+.kurye-card__product strong { color: var(--gray-800); }
+
+.kurye-card__note {
+  font-size: 0.78rem;
+  color: var(--gray-500);
+  background: #fef9c3;
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.55rem;
+}
+
+/* Action buttons */
+.kurye-card__actions { margin-top: 0.2rem; }
+
+.kurye-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: filter .15s, transform .1s;
+}
+.kurye-btn:active { transform: scale(0.98); }
+.kurye-btn--start {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+.kurye-btn--start:hover  { filter: brightness(1.08); }
+.kurye-btn--deliver {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+}
+.kurye-btn--deliver:hover { filter: brightness(1.08); }
+
+/* Payment options */
+.kurye-payment {
+  background: #f8fafc;
+  border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.kurye-payment__label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--gray-600);
+  text-align: center;
+}
+.kurye-payment__btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+.kurye-pay {
+  padding: 0.65rem 0.5rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter .15s, transform .1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+.kurye-pay:active { transform: scale(0.97); }
+.kurye-pay--nakit  { background: #dcfce7; color: #15803d; }
+.kurye-pay--havale { background: #dbeafe; color: #1d4ed8; }
+.kurye-pay--borc   { background: #fee2e2; color: #dc2626; grid-column: 1; }
+.kurye-pay--cancel { background: var(--gray-100); color: var(--gray-600); }
+.kurye-pay:hover   { filter: brightness(0.95); }
+
+/* Empty state */
+.kurye-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--gray-400);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+.kurye-empty p { font-size: 0.95rem; font-weight: 500; }

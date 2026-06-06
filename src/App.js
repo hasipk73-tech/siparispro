@@ -14,6 +14,7 @@ import GunSonuModal from "./components/GunSonuModal";
 import DebtView from "./components/DebtView";
 import WhatsAppSettings from "./components/WhatsAppSettings";
 import StockModal from "./components/StockModal";
+import KuryePanel from "./components/KuryePanel";
 import { useWhatsApp } from "./hooks/useWhatsApp";
 
 const WaterLogo = () => (
@@ -81,6 +82,18 @@ export default function App() {
         <div className="app-loading__spinner" />
         <p>Yükleniyor…</p>
       </div>
+    );
+  }
+
+  // ── Kurye view ────────────────────────────────
+  if (auth.type === "kurye") {
+    return (
+      <KuryePanel
+        auth={auth}
+        orders={orders}
+        updateOrder={updateOrder}
+        onLogout={handleLogout}
+      />
     );
   }
 

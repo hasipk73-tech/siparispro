@@ -1,8 +1,8 @@
 import { useState } from "react";
 
 const EMPLOYEES = [
-  { username: "admin", password: "1234", displayName: "Yönetici" },
-  { username: "kurye", password: "5678", displayName: "Kurye"    },
+  { username: "admin", password: "1234", displayName: "Yönetici", type: "admin" },
+  { username: "kurye", password: "5678", displayName: "Kurye",    type: "kurye" },
 ];
 
 function IconPhone() {
@@ -115,7 +115,7 @@ function EmployeeForm({ onLogin }) {
     setLoading(true);
     setTimeout(() => {
       setLoading(false);
-      onLogin({ type: "employee", username: emp.username, displayName: emp.displayName });
+      onLogin({ type: emp.type, username: emp.username, displayName: emp.displayName });
     }, 600);
   };
 
