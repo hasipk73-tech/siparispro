@@ -160,7 +160,9 @@ export default function KuryePanel({ auth, orders, updateOrder, onLogout }) {
                       <IconChevron up={isExpanded} />
                     </div>
                     <div className="kurye-card__brief-product">
-                      📦 {order.product}{order.amount > 1 ? ` × ${order.amount}` : ""}
+                      📦 {order.items?.length > 1
+                        ? order.items.map(i => `${i.product.split(" ")[0]} ×${i.qty}`).join(" · ")
+                        : `${order.product} × ${order.amount}`}
                       {order.totalDebt > 0 && <span className="kurye-card__debt-pill">{order.totalDebt} ₺ borç</span>}
                     </div>
                   </div>

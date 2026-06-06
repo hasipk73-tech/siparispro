@@ -96,12 +96,30 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
             <span className="info-label">Telefon</span>
             <span className="info-value">{order.phone}</span>
           </div>
-          {order.product && (
-            <div className="info-row">
-              <span className="info-label">Ürün</span>
-              <span className="info-value">{order.product}</span>
+          <div className="info-row info-row--block">
+            <span className="info-label">Ürünler</span>
+            <div className="order-items-list">
+              {order.items?.length ? (
+                <>
+                  {order.items.map((item, i) => (
+                    <div key={i} className="order-item-row">
+                      <span className="order-item-row__name">{item.product} <strong>× {item.qty}</strong></span>
+                      <span className="order-item-row__price">{item.total ?? item.qty * (item.unitPrice || 0)} ₺</span>
+                    </div>
+                  ))}
+                  <div className="order-item-row order-item-row--total">
+                    <span>Toplam</span>
+                    <span>{order.items.reduce((s, i) => s + (i.total ?? i.qty * (i.unitPrice || 0)), 0)} ₺</span>
+                  </div>
+                </>
+              ) : (
+                <div className="order-item-row">
+                  <span className="order-item-row__name">{order.product} <strong>× {order.amount}</strong></span>
+                  {order.orderTotal > 0 && <span className="order-item-row__price">{order.orderTotal} ₺</span>}
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           <hr className="modal-divider" />
 
