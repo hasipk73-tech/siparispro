@@ -15,6 +15,7 @@ import DebtView from "./components/DebtView";
 import WhatsAppSettings from "./components/WhatsAppSettings";
 import StockModal from "./components/StockModal";
 import KuryePanel from "./components/KuryePanel";
+import TrendyolSettings from "./components/TrendyolSettings";
 import { useWhatsApp } from "./hooks/useWhatsApp";
 
 const WaterLogo = () => (
@@ -61,9 +62,10 @@ export default function App() {
 
   const { closedIds, toggleProduct } = useStock();
 
-  const [activeTab,       setActiveTab]      = useState("catalog");
-  const [showWaSettings,  setShowWaSettings]  = useState(false);
-  const [showStockModal,  setShowStockModal]  = useState(false);
+  const [activeTab,          setActiveTab]         = useState("catalog");
+  const [showWaSettings,     setShowWaSettings]     = useState(false);
+  const [showStockModal,     setShowStockModal]     = useState(false);
+  const [showTrendyolModal,  setShowTrendyolModal]  = useState(false);
 
   const handleLogin  = (authData) => { setAuth(authData); setActiveTab("catalog"); };
   const handleLogout = () => setAuth(null);
@@ -193,6 +195,14 @@ export default function App() {
               <div className="header__user-label">Hoşgeldin</div>
               <div className="header__user-name">{auth.displayName}</div>
             </div>
+            <button
+              className="btn-trendyol"
+              onClick={() => setShowTrendyolModal(true)}
+              title="Trendyol Entegrasyonu"
+            >
+              <span className="btn-trendyol__t">T</span>
+              <span className="btn-trendyol__text">Trendyol</span>
+            </button>
             <button
               className={`btn-whatsapp${waSettings.enabled ? " btn-whatsapp--active" : ""}`}
               onClick={() => setShowWaSettings(true)}
@@ -339,6 +349,10 @@ export default function App() {
           onClose={() => setShowWaSettings(false)}
           onTest={waSendTest}
         />
+      )}
+
+      {showTrendyolModal && (
+        <TrendyolSettings onClose={() => setShowTrendyolModal(false)} />
       )}
 
       {showStockModal && (

@@ -53,7 +53,10 @@ export default function OrderCard({ order, onUpdate }) {
     <>
       <div className={`order-card${hasDebt ? " order-card--has-debt" : ""}`}>
         <div className="order-card__header">
-          <div className="order-card__customer">{order.customerName}</div>
+          <div className="order-card__customer">
+            {order.source === "trendyol" && <span className="badge-trendyol">Trendyol</span>}
+            {order.customerName}
+          </div>
           <span className={`badge ${statusClass[order.status]}`}>
             {statusLabels[order.status]}
           </span>

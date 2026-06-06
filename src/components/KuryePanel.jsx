@@ -150,6 +150,9 @@ export default function KuryePanel({ auth, orders, updateOrder, onLogout }) {
                   {/* ── Özet satırı (her zaman görünür, tıklanabilir) ── */}
                   <div className="kurye-card__summary" onClick={() => toggle(order.id)}>
                     <div className="kurye-card__summary-left">
+                      {order.source === "trendyol" && (
+                        <span className="badge-trendyol badge-trendyol--sm">T</span>
+                      )}
                       <span className="kurye-card__cname">{order.customerName}</span>
                       <span className={`kurye-badge kurye-badge--${order.status}`}>
                         {STATUS_LABEL[order.status]}
