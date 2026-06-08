@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { buildMapsUrl } from "./MapView";
 import { formatOrderTime } from "../utils/formatTime";
+import { useTenant } from "../tenant/TenantContext";
+import { ozellikAcik } from "../utils/ozellikler";
 
 const STATUS_LABEL = {
   beklemede:     "Beklemede",
@@ -28,14 +30,38 @@ function IconChevron({ up }) {
   );
 }
 
+function formatIptalTarihi(ts) {
+  if (!ts) return "";
+  try {
+    const d = ts.toDate ? ts.toDate() : new Date(ts.seconds * 1000);
+    return d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric" });
+  } catch { return ""; }
+}
+
 export default function KuryePanel({ auth, orders, updateOrder, onLogout }) {
+  const tenant        = useTenant();
+  const trendyolAcik  = ozellikAcik(tenant, "trendyol");
+
+  const [sekme,       setSekme]       = useState("aktif"); // "aktif" | "iptal"
   const [mahalle,     setMahalle]     = useState("hepsi");
   const [expandedId,  setExpandedId]  = useState(null);
   const [showPayment, setShowPayment] = useState(null);
 
   const activeOrders = useMemo(() =>
-    orders.filter(o => o.status === "beklemede" || o.status === "yolda")
-  , [orders]);
+    orders.filter(o => {
+      if (o.status !== "beklemede" && o.status !== "yolda") return false;
+      if (o.source === "trendyol" && !trendyolAcik) return false;
+      return true;
+    })
+  , [orders, trendyolAcik]);
+
+  const iptalOrders = useMemo(() =>
+    orders.filter(o => {
+      if (o.status !== "iptal") return false;
+      if (o.source === "trendyol" && !trendyolAcik) return false;
+      return true;
+    })
+  , [orders, trendyolAcik]);
 
   const mahalleler = useMemo(() => {
     const set = new Set(
@@ -101,6 +127,116 @@ export default function KuryePanel({ auth, orders, updateOrder, onLogout }) {
 
       <div className="kurye-content">
 
+        {/* ── Sekme seçici ── */}
+        <div className="kurye-sekme-bar">
+          <button
+            className={`kurye-sekme${sekme === "aktif" ? " kurye-sekme--aktif" : ""}`}
+            onClick={() => setSekme("aktif")}
+          >
+            Aktif Siparişler
+            <span className="kurye-sekme__badge">{activeOrders.length}</span>
+          </button>
+          <button
+            className={`kurye-sekme${sekme === "iptal" ? " kurye-sekme--aktif kurye-sekme--iptal-aktif" : ""}`}
+            onClick={() => setSekme("iptal")}
+          >
+            İptal Edilenler
+            {iptalOrders.length > 0 && (
+              <span className="kurye-sekme__badge kurye-sekme__badge--red">{iptalOrders.length}</span>
+            )}
+          </button>
+        </div>
+
+        {/* ── İPTAL SEKMESİ ── */}
+        {sekme === "iptal" && (
+          <div className="kurye-iptal-liste">
+            {iptalOrders.length === 0 ? (
+              <div className="kurye-empty">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#86efac" strokeWidth="1.5">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <p>İptal edilen sipariş yok</p>
+              </div>
+            ) : (
+              iptalOrders.map(order => {
+                const items = order.items?.length
+                  ? order.items
+                  : [{ product: order.product, qty: order.amount, total: order.orderTotal }];
+                return (
+                  <div key={order.id} className="kurye-card kurye-card--iptal">
+                    <div className="kurye-card__summary" style={{ cursor: "default" }}>
+                      <div className="kurye-card__summary-left">
+                        <span className="kurye-badge kurye-badge--iptal">İPTAL</span>
+                        <span className="kurye-card__cname">{order.customerName}</span>
+                      </div>
+                      {order.orderTotal > 0 && (
+                        <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#dc2626" }}>
+                          {order.orderTotal} ₺
+                        </span>
+                      )}
+                    </div>
+                    <div className="kurye-card__detail" style={{ display: "block" }}>
+                      {/* Adres */}
+                      <div className="kurye-detail__row">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" style={{ flexShrink: 0 }}>
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                          <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        <div>
+                          <div className="kurye-detail__val">{order.address}</div>
+                          {order.neighborhood && order.neighborhood !== "Gel Al" && (
+                            <div className="kurye-detail__sub">{order.neighborhood}</div>
+                          )}
+                        </div>
+                      </div>
+                      {/* Ürünler */}
+                      <div className="kurye-detail__row">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" style={{ flexShrink: 0 }}>
+                          <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+                          <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+                        </svg>
+                        <div className="kurye-detail__products">
+                          {items.map((item, i) => (
+                            <div key={i} className="kurye-detail__item">
+                              <span>{item.product} × {item.qty}</span>
+                              {item.total > 0 && <span>{item.total} ₺</span>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {/* İptal nedeni */}
+                      {order.iptalNedeni && (
+                        <div className="kurye-detail__row">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" style={{ flexShrink: 0 }}>
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                          </svg>
+                          <span style={{ color: "#dc2626", fontWeight: 500 }}>{order.iptalNedeni}</span>
+                        </div>
+                      )}
+                      {/* Kim iptal etti + tarih */}
+                      <div className="kurye-detail__row" style={{ gap: "0.75rem" }}>
+                        {order.iptalEden && (
+                          <span className="kurye-detail__sub">
+                            {order.iptalEden === "musteri" ? "Müşteri iptal etti" : "Admin iptal etti"}
+                          </span>
+                        )}
+                        {order.iptalTarihi && (
+                          <span className="kurye-detail__sub">{formatIptalTarihi(order.iptalTarihi)}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* ── AKTİF SİPARİŞLER SEKMESİ ── */}
+        {sekme === "aktif" && <>
+
         {/* ── İstatistikler ── */}
         <div className="kurye-stats">
           <div className="kurye-stat kurye-stat--beklemede">
@@ -152,7 +288,7 @@ export default function KuryePanel({ auth, orders, updateOrder, onLogout }) {
                   <div className="kurye-card__summary" onClick={() => toggle(order.id)}>
                     <div className="kurye-card__summary-left">
                       {order.source === "trendyol" && (
-                        <span className="badge-trendyol badge-trendyol--sm">T</span>
+                        <span className="badge-trendyol">Trendyol</span>
                       )}
                       <span className="kurye-card__cname">{order.customerName}</span>
                       <span className={`kurye-badge kurye-badge--${order.status}`}>
@@ -174,6 +310,16 @@ export default function KuryePanel({ auth, orders, updateOrder, onLogout }) {
                   {/* ── Genişletilmiş detay ── */}
                   {isExpanded && (
                     <div className="kurye-card__detail">
+
+                      {/* Trendyol sipariş no */}
+                      {order.source === "trendyol" && order.trendyolOrderNumber && (
+                        <div className="kurye-detail__row">
+                          <span className="badge-trendyol" style={{ flexShrink: 0 }}>Trendyol</span>
+                          <span className="kurye-detail__val" style={{ fontFamily: "monospace", fontSize: "0.82rem" }}>
+                            #{order.trendyolOrderNumber}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Sipariş saati */}
                       {formatOrderTime(order.createdAt) && (
@@ -292,6 +438,8 @@ export default function KuryePanel({ auth, orders, updateOrder, onLogout }) {
             })}
           </div>
         )}
+        </> /* aktif sekme sonu */}
+
       </div>
     </div>
   );

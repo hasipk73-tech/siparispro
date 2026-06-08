@@ -1,53 +1,66 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import {
-  collection, onSnapshot, addDoc, updateDoc, doc,
-  query, orderBy, serverTimestamp,
-} from "firebase/firestore";
-import { db } from "../firebase";
+import { serverTimestamp } from "firebase/firestore";
+import { useTenant } from "../tenant/TenantContext";
+import { tenantDb } from "../lib/tenantDb";
 import { PRODUCTS } from "../data/products";
 import { CATALOG_PRODUCTS } from "../data/catalogProducts";
 
 const ORDERS_COL = "orders";
 
 export function useOrders(onNewOrder) {
-  const [orders, setOrders]       = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [searchTerm, setSearchTerm]   = useState("");
+  const tenant = useTenant();
+  const tdb    = useMemo(() => tenant?.id ? tenantDb(tenant.id) : null, [tenant?.id]);
+
+  const [orders, setOrders]             = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [dinleHata, setDinleHata]       = useState("");
+  const [searchTerm, setSearchTerm]     = useState("");
   const [statusFilter, setStatusFilter] = useState("hepsi");
 
-  // Track IDs known at initial load so we only fire onNewOrder for truly new orders
   const initialIdsRef = useRef(null);
 
   useEffect(() => {
-    const q = query(collection(db, ORDERS_COL), orderBy("createdAt", "desc"));
+    if (!tdb) { setLoading(false); return; }
+    initialIdsRef.current = null;
 
-    const unsub = onSnapshot(q, (snap) => {
-      const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const unsub = tdb.dinle(ORDERS_COL, (docs) => {
+      // Firestore composite index gerektirmemek için client'ta sırala
+      const sirali = [...docs].sort((a, b) => {
+        const ta = a.createdAt?.seconds ?? 0;
+        const tb = b.createdAt?.seconds ?? 0;
+        return tb - ta;
+      });
 
-      // First snapshot: record existing IDs, don't fire notifications
       if (initialIdsRef.current === null) {
-        initialIdsRef.current = new Set(docs.map((o) => o.id));
-        setOrders(docs);
+        initialIdsRef.current = new Set(sirali.map((o) => o.id));
+        setOrders(sirali);
         setLoading(false);
         return;
       }
 
-      // Subsequent snapshots: detect brand-new documents and notify
-      docs.forEach((order) => {
+      sirali.forEach((order) => {
         if (!initialIdsRef.current.has(order.id)) {
           initialIdsRef.current.add(order.id);
           onNewOrder?.(order);
         }
       });
 
-      setOrders(docs);
+      setOrders(sirali);
+    }, [], (err) => {
+      setDinleHata(`${err.code}: ${err.message}`);
+      setLoading(false);
     });
 
     return () => unsub();
-  }, [onNewOrder]);
+  }, [tdb, onNewOrder]);
+
+  const iptalOrders = useMemo(() =>
+    orders.filter(o => o.status === "iptal"),
+  [orders]);
 
   const filtered = useMemo(() => {
     return orders.filter((o) => {
+      if (o.status === "iptal") return false; // iptal olanlar ana listeden daima dışarıda
       const matchesSearch =
         o.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         o.neighborhood?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -69,28 +82,29 @@ export function useOrders(onNewOrder) {
   }, [filtered]);
 
   const updateOrder = async (id, updates) => {
-    await updateDoc(doc(db, ORDERS_COL, id), updates);
+    await tdb.guncelle(ORDERS_COL, id, updates);
   };
 
   const addOrder = async (orderData) => {
     const newOrder = {
       ...orderData,
-      status: "beklemede",
+      status:        "beklemede",
       paymentStatus: null,
-      orderTotal: orderData.totalDebt || 0,
-      totalDebt: 0,
-      lastDelivery: new Date().toISOString().split("T")[0],
-      createdAt: serverTimestamp(),
+      orderTotal:    orderData.totalDebt || 0,
+      totalDebt:     0,
+      lastDelivery:  new Date().toISOString().split("T")[0],
+      createdAt:     serverTimestamp(),
     };
-    await addDoc(collection(db, ORDERS_COL), newOrder);
+    await tdb.ekle(ORDERS_COL, newOrder);
   };
 
   const stats = useMemo(() => ({
-    total:      orders.length,
-    delivered:  orders.filter((o) => o.status === "teslim_edildi").length,
-    pending:    orders.filter((o) => o.status === "beklemede").length,
-    onRoute:    orders.filter((o) => o.status === "yolda").length,
-    totalDebt:  orders.reduce((sum, o) => sum + (o.totalDebt || 0), 0),
+    total:     orders.filter(o => o.status !== "iptal").length,
+    delivered: orders.filter(o => o.status === "teslim_edildi").length,
+    pending:   orders.filter(o => o.status === "beklemede").length,
+    onRoute:   orders.filter(o => o.status === "yolda").length,
+    totalDebt: orders.filter(o => o.status !== "iptal").reduce((sum, o) => sum + (o.totalDebt || 0), 0),
+    iptal:     orders.filter(o => o.status === "iptal").length,
   }), [orders]);
 
   const gunSonuStats = useMemo(() => {
@@ -100,6 +114,8 @@ export function useOrders(onNewOrder) {
     const todayDelivered = todayOrders.filter(o => o.status === "teslim_edildi");
     const todayOnRoute   = todayOrders.filter(o => o.status === "yolda");
     const todayPending   = todayOrders.filter(o => o.status === "beklemede");
+    const todayIptal     = todayOrders.filter(o => o.status === "iptal");
+    const todayIptalTutar = todayIptal.reduce((s, o) => s + (o.orderTotal || 0), 0);
 
     const catalogMap = Object.fromEntries(CATALOG_PRODUCTS.map(p => [p.name, p]));
     const unitPrice = (name, dt) => {
@@ -178,16 +194,21 @@ export function useOrders(onNewOrder) {
       todayGelAlRevenue,
       todayEveTeslimRevenue,
       productTotals,
-      allTotal:     orders.length,
+      todayIptal:       todayIptal.length,
+      todayIptalTutar,
+      allTotal:     orders.filter(o => o.status !== "iptal").length,
       allDelivered: orders.filter(o => o.status === "teslim_edildi").length,
       allOnRoute:   orders.filter(o => o.status === "yolda").length,
       allPending:   orders.filter(o => o.status === "beklemede").length,
+      allIptal:     orders.filter(o => o.status === "iptal").length,
     };
   }, [orders]);
 
   return {
     orders,
+    iptalOrders,
     loading,
+    dinleHata,
     grouped,
     searchTerm,
     setSearchTerm,

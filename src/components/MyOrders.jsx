@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { serverTimestamp } from "firebase/firestore";
 import { CATALOG_PRODUCTS } from "../data/catalogProducts";
 import { formatOrderTime, getCreatedMs } from "../utils/formatTime";
+
+const IPTAL_SECENEKLER = ["Vazgeçtim", "Yanlış sipariş", "Adres değişti", "Diğer"];
 
 const STATUS_STEPS = ["beklemede", "yolda", "teslim_edildi"];
 const STATUS_LABELS = {
@@ -62,6 +65,8 @@ export default function MyOrders({ orders, updateOrder, notify, phone, onNewOrde
   const [editingId, setEditingId] = useState(null);
   const [editCart, setEditCart] = useState({});
   const [confirmCancelId, setConfirmCancelId] = useState(null);
+  const [cancelReason, setCancelReason] = useState(IPTAL_SECENEKLER[0]);
+  const [cancelCustom, setCancelCustom] = useState("");
 
   const norm = (p) => (p || "").replace(/\s/g, "");
   const myOrders = orders
@@ -118,12 +123,22 @@ export default function MyOrders({ orders, updateOrder, notify, phone, onNewOrde
   };
 
   const handleCancel = (order) => {
-    updateOrder(order.id, { status: "iptal" });
+    const neden = cancelReason === "Diğer" && cancelCustom.trim()
+      ? cancelCustom.trim()
+      : cancelReason;
+    updateOrder(order.id, {
+      status:      "iptal",
+      iptalNedeni: neden,
+      iptalTarihi: serverTimestamp(),
+      iptalEden:   "musteri",
+    });
     notify?.("Sipariş İptal Edildi", {
       body: `${order.customerName} siparişini iptal etti`,
       tag: `cancel-${order.id}`,
     });
     setConfirmCancelId(null);
+    setCancelReason(IPTAL_SECENEKLER[0]);
+    setCancelCustom("");
   };
 
   const formatDate = (dateStr) => {
@@ -241,17 +256,36 @@ export default function MyOrders({ orders, updateOrder, notify, phone, onNewOrde
             {canAct && !isEditing && (
               <div className="order-row__actions">
                 {confirming ? (
-                  <>
-                    <span style={{ fontSize: "0.8rem", color: "var(--gray-600)", alignSelf: "center", flex: 1 }}>
-                      Siparişi iptal etmek istediğinize emin misiniz?
-                    </span>
-                    <button className="btn btn--outline" style={{ flex: "0 0 auto" }} onClick={() => setConfirmCancelId(null)}>
-                      Hayır
-                    </button>
-                    <button className="btn--cancel" style={{ flex: "0 0 auto" }} onClick={() => handleCancel(order)}>
-                      Evet, İptal Et
-                    </button>
-                  </>
+                  <div className="cancel-reason-box">
+                    <div className="cancel-reason-box__title">İptal nedeni</div>
+                    <div className="cancel-reason-box__chips">
+                      {IPTAL_SECENEKLER.map(s => (
+                        <button
+                          key={s}
+                          className={`cancel-chip${cancelReason === s ? " cancel-chip--active" : ""}`}
+                          onClick={() => setCancelReason(s)}
+                        >{s}</button>
+                      ))}
+                    </div>
+                    {cancelReason === "Diğer" && (
+                      <input
+                        className="cancel-reason-box__input"
+                        type="text"
+                        placeholder="Nedeninizi yazın (isteğe bağlı)"
+                        value={cancelCustom}
+                        onChange={e => setCancelCustom(e.target.value)}
+                        autoFocus
+                      />
+                    )}
+                    <div className="cancel-reason-box__actions">
+                      <button className="btn btn--outline" onClick={() => { setConfirmCancelId(null); setCancelReason(IPTAL_SECENEKLER[0]); setCancelCustom(""); }}>
+                        Vazgeç
+                      </button>
+                      <button className="btn--cancel" onClick={() => handleCancel(order)}>
+                        İptal Et
+                      </button>
+                    </div>
+                  </div>
                 ) : (
                   <>
                     <button className="btn--cancel" onClick={() => setConfirmCancelId(order.id)}>

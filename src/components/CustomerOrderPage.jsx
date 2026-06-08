@@ -20,43 +20,14 @@ function IconBottle({ size = 44, color = "#0284c7" }) {
 }
 
 
-function getProductMeta(name) {
-  if (name.includes("Damacana") || name.includes("19L")) return {
-    Icon: IconWaterDrop, iconColor: "#1d4ed8",
-    waterBg: "linear-gradient(160deg,#dbeafe 0%,#93c5fd 55%,#60a5fa 100%)",
-    glow: "rgba(37,99,235,0.22)",
-  };
-  if (name.includes("Soda")) return {
-    Icon: null, emoji: "🥤", iconColor: "#16a34a",
-    waterBg: "linear-gradient(160deg,#dcfce7 0%,#86efac 55%,#4ade80 100%)",
-    glow: "rgba(22,163,74,0.18)",
-  };
-  if (name.includes("5L")) return {
-    Icon: IconBottle, iconColor: "#0369a1",
-    waterBg: "linear-gradient(160deg,#e0f2fe 0%,#7dd3fc 55%,#38bdf8 100%)",
-    glow: "rgba(2,132,199,0.2)",
-  };
-  if (name.includes("1.5L")) return {
-    Icon: IconBottle, iconColor: "#0e7490",
-    waterBg: "linear-gradient(160deg,#cffafe 0%,#67e8f9 55%,#22d3ee 100%)",
-    glow: "rgba(8,145,178,0.2)",
-  };
-  if (name.includes("0.5L")) return {
-    Icon: IconBottle, iconColor: "#0f766e",
-    waterBg: "linear-gradient(160deg,#ccfbf1 0%,#5eead4 55%,#2dd4bf 100%)",
-    glow: "rgba(13,148,136,0.2)",
-  };
-  if (name.includes("0.33L")) return {
-    Icon: IconBottle, iconColor: "#15803d",
-    waterBg: "linear-gradient(160deg,#dcfce7 0%,#86efac 55%,#4ade80 100%)",
-    glow: "rgba(22,163,74,0.2)",
-  };
-  return {
-    Icon: IconWaterDrop, iconColor: "#1d4ed8",
-    waterBg: "linear-gradient(160deg,#dbeafe 0%,#93c5fd 55%,#60a5fa 100%)",
-    glow: "rgba(37,99,235,0.18)",
-  };
+function getProductIcon(name) {
+  if (name.includes("Soda") || name.includes("Meyve") || name.includes("Çay") || name.includes("Ayran"))
+    return { emoji: "🥤" };
+  if (/5L|1\.5L|0\.5L|0\.33L/.test(name))
+    return { Icon: IconBottle };
+  return { Icon: IconWaterDrop };
 }
+
 
 function IconTruck() {
   return (
@@ -393,21 +364,22 @@ export default function CustomerOrderPage({ addOrder, phone, closedIds = new Set
               const inCart = qty > 0;
               const isGelAl = deliveryType === "gelAl";
               const isClosed = closedIds.has(p.id);
-              const meta = getProductMeta(p.name);
+              const icon = getProductIcon(p.name);
               return (
                 <div
                   key={p.id}
                   className={`product-card${inCart ? " product-card--in-cart" : ""}${isClosed ? " product-card--closed" : ""}`}
-                  style={{ "--card-glow": meta.glow }}
                 >
                   <div className="product-card__visual">
-                    {/* Animated water background */}
-                    <div className="product-card__water" style={{ background: meta.waterBg }}>
-                      <span className="water-drop wd-1" />
-                      <span className="water-drop wd-2" />
-                      <span className="water-drop wd-3" />
-                    </div>
-
+                    {/* Splash katmanı: Abant hariç tüm kartlarda şişenin arkasında */}
+                    {!p.hasSplash && (
+                      <img
+                        src="/pngwing.com.png"
+                        alt=""
+                        aria-hidden="true"
+                        className="product-card__splash"
+                      />
+                    )}
                     {p.image ? (
                       <img
                         src={p.image}
@@ -427,9 +399,9 @@ export default function CustomerOrderPage({ addOrder, phone, closedIds = new Set
                       className="product-card__img-fallback"
                       style={{ display: p.image ? "none" : "flex" }}
                     >
-                      {meta.emoji
-                        ? <span className="product-card__emoji">{meta.emoji}</span>
-                        : <meta.Icon size={48} color={meta.iconColor} />
+                      {icon.emoji
+                        ? <span className="product-card__emoji">{icon.emoji}</span>
+                        : <icon.Icon size={48} color="var(--marka, #0284c7)" />
                       }
                     </div>
                     {isClosed && (

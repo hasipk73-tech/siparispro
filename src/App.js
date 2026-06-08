@@ -12,11 +12,15 @@ import MyOrders from "./components/MyOrders";
 import LoginPage from "./components/LoginPage";
 import GunSonuModal from "./components/GunSonuModal";
 import DebtView from "./components/DebtView";
+import IptalView from "./components/IptalView";
 import WhatsAppSettings from "./components/WhatsAppSettings";
 import StockModal from "./components/StockModal";
 import KuryePanel from "./components/KuryePanel";
 import TrendyolSettings from "./components/TrendyolSettings";
 import { useWhatsApp } from "./hooks/useWhatsApp";
+import SuperAdminPanel from "./superadmin/SuperAdminPanel";
+import { useSetTenant, useTenant } from "./tenant/TenantContext";
+import { ozellikAcik } from "./utils/ozellikler";
 
 const WaterLogo = () => (
   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
@@ -26,6 +30,9 @@ const WaterLogo = () => (
 
 export default function App() {
   const [auth, setAuth] = useState(null);
+  const setTenant  = useSetTenant();
+  const tenant     = useTenant();
+  const markaAd    = tenant?.marka?.ad || tenant?.ad || "SiparisPro";
 
   // Hooks must always be called — not conditionally
   const { permission, requestPermission, notify } = useNotifications();
@@ -44,7 +51,9 @@ export default function App() {
 
   const {
     orders,
+    iptalOrders,
     loading,
+    dinleHata,
     grouped,
     searchTerm,
     setSearchTerm,
@@ -68,13 +77,31 @@ export default function App() {
   const [showTrendyolModal,  setShowTrendyolModal]  = useState(false);
 
   const handleLogin  = (authData) => { setAuth(authData); setActiveTab("catalog"); };
-  const handleLogout = () => setAuth(null);
+  const handleLogout = () => { setTenant(null); setAuth(null); };
+
+  // ── Superadmin route ──────────────────────────
+  if (window.location.pathname.replace(/\/$/, "") === "/superadmin") {
+    return <SuperAdminPanel />;
+  }
 
   // ── Not logged in ──────────────────────────────
   if (!auth) {
     const path = window.location.pathname.replace(/\/$/, "");
-    const loginMode = path === "/calisan" ? "employee" : "customer";
+    const isCalisanPath = path === "/calisan" || path.startsWith("/calisan");
+    const loginMode = isCalisanPath ? "employee" : "customer";
     return <LoginPage onLogin={handleLogin} mode={loginMode} />;
+  }
+
+  // ── Yetkisiz rol — müşteriye düşürme ──────────
+  if (auth.type !== "admin" && auth.type !== "kurye" && auth.type !== "customer") {
+    return (
+      <div style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:"100vh" }}>
+        <div style={{ textAlign:"center" }}>
+          <p style={{ color:"#ef4444", fontWeight:600 }}>Yetkisiz erişim</p>
+          <button onClick={handleLogout} style={{ marginTop:"1rem", padding:"0.5rem 1rem", borderRadius:8, border:"1px solid #e2e8f0", cursor:"pointer" }}>Çıkış</button>
+        </div>
+      </div>
+    );
   }
 
   // ── Firestore loading ──────────────────────────
@@ -112,7 +139,7 @@ export default function App() {
             <div className="header__brand">
               <WaterLogo />
               <div>
-                <div className="header__title">SiparisPro</div>
+                <div className="header__title">{markaAd}</div>
                 <div className="header__subtitle">Akıllı Sipariş ve Dağıtım Yönetimi</div>
               </div>
             </div>
@@ -170,6 +197,7 @@ export default function App() {
   }
 
   // ── Employee (admin) view ──────────────────────
+  if (auth.type !== "admin") return null;
   return (
     <div className="app">
       <header className="header">
@@ -177,7 +205,7 @@ export default function App() {
           <div className="header__brand">
             <WaterLogo />
             <div>
-              <div className="header__title">SiparisPro</div>
+              <div className="header__title">{markaAd}</div>
               <div className="header__subtitle">Akıllı Sipariş ve Dağıtım Yönetimi</div>
             </div>
           </div>
@@ -195,14 +223,16 @@ export default function App() {
               <div className="header__user-label">Hoşgeldin</div>
               <div className="header__user-name">{auth.displayName}</div>
             </div>
-            <button
-              className="btn-trendyol"
-              onClick={() => setShowTrendyolModal(true)}
-              title="Trendyol Entegrasyonu"
-            >
-              <span className="btn-trendyol__t">T</span>
-              <span className="btn-trendyol__text">Trendyol</span>
-            </button>
+            {ozellikAcik(tenant, "trendyol") && (
+              <button
+                className="btn-trendyol"
+                onClick={() => setShowTrendyolModal(true)}
+                title="Trendyol Entegrasyonu"
+              >
+                <span className="btn-trendyol__t">T</span>
+                <span className="btn-trendyol__text">Trendyol</span>
+              </button>
+            )}
             <button
               className={`btn-whatsapp${waSettings.enabled ? " btn-whatsapp--active" : ""}`}
               onClick={() => setShowWaSettings(true)}
@@ -213,13 +243,15 @@ export default function App() {
               </svg>
               WhatsApp
             </button>
-            <button className="btn-stock" onClick={() => setShowStockModal(true)} title="Stok Yönetimi">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
-                <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
-              </svg>
-              <span className="btn-stock__text">Stok</span>
-            </button>
+            {ozellikAcik(tenant, "stokTakibi") && (
+              <button className="btn-stock" onClick={() => setShowStockModal(true)} title="Stok Yönetimi">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+                  <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+                </svg>
+                <span className="btn-stock__text">Stok</span>
+              </button>
+            )}
             <button className="btn-gunsonu" onClick={() => setShowGunSonu(true)}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
@@ -257,6 +289,7 @@ export default function App() {
           <StatCard icon="🚚" label="Yolda" value={stats.onRoute} color="cyan" />
           <StatCard icon="⏳" label="Beklemede" value={stats.pending} color="yellow" />
           <StatCard icon="💰" label="Toplam Borç" value={`${stats.totalDebt} ₺`} color="red" />
+          {stats.iptal > 0 && <StatCard icon="🚫" label="İptal" value={stats.iptal} color="red" />}
         </div>
 
         <div className="filters">
@@ -284,6 +317,7 @@ export default function App() {
               { val: "yolda",         label: "Yolda"      },
               { val: "beklemede",     label: "Beklemede"  },
               { val: "borclu",        label: "Borçlular", badge: stats.totalDebt > 0 },
+              { val: "iptal",         label: "İptal Edilenler", badge: stats.iptal > 0, count: stats.iptal },
             ].map(({ val, label, badge }) => (
               <button
                 key={val}
@@ -297,7 +331,9 @@ export default function App() {
           </div>
         </div>
 
-        {statusFilter === "borclu" ? (
+        {statusFilter === "iptal" ? (
+          <IptalView orders={iptalOrders} onUpdate={updateOrder} />
+        ) : statusFilter === "borclu" ? (
           <DebtView grouped={grouped} onUpdate={updateOrder} />
         ) : neighborhoods.length === 0 ? (
           <div className="empty-state">
@@ -351,11 +387,11 @@ export default function App() {
         />
       )}
 
-      {showTrendyolModal && (
+      {ozellikAcik(tenant, "trendyol") && showTrendyolModal && (
         <TrendyolSettings onClose={() => setShowTrendyolModal(false)} />
       )}
 
-      {showStockModal && (
+      {ozellikAcik(tenant, "stokTakibi") && showStockModal && (
         <StockModal
           closedIds={closedIds}
           onToggle={toggleProduct}

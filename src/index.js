@@ -2,12 +2,22 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { TenantProvider } from './tenant/TenantContext';
+import SuperAdminPanel from './superadmin/SuperAdminPanel';
 import reportWebVitals from './reportWebVitals';
+
+const isSuperAdmin = window.location.pathname.startsWith('/superadmin');
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    {isSuperAdmin ? (
+      <SuperAdminPanel />
+    ) : (
+      <TenantProvider>
+        <App />
+      </TenantProvider>
+    )}
   </React.StrictMode>
 );
 

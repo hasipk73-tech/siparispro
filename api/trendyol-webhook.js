@@ -13,9 +13,8 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// Trendyol HMAC-SHA256 imza doğrulaması
 function verifySignature(rawBody, signature, secret) {
-  if (!secret || !signature) return true; // secret yoksa geç
+  if (!secret || !signature) return true;
   try {
     const computed = crypto
       .createHmac("sha256", secret)
@@ -30,7 +29,20 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // ── İmza doğrulama ─────────────────────────────────────────────
+  // ── tenantId URL'den okunur: ?tenant=TENANT_ID ──────────────────
+  // Her firma Trendyol paneline kendi URL'ini girer:
+  //   https://domain.com/api/trendyol-webhook?tenant=abc123
+  // Tek deploy, sınırsız firma.
+  const tenantId = req.query.tenant;
+  if (!tenantId) {
+    return res.status(400).json({
+      error: "tenant parametresi eksik.",
+      ornek: "/api/trendyol-webhook?tenant=FIRESTORE_TENANT_ID",
+    });
+  }
+
+  // ── İmza doğrulama (opsiyonel, tenant'a özel secret) ────────────
+  // Trendyol'da tenant bazlı secret desteklenmiyorsa global TRENDYOL_WEBHOOK_SECRET kullanılır.
   const webhookSecret = process.env.TRENDYOL_WEBHOOK_SECRET;
   const signature     = req.headers["x-trendyol-signature"];
   const rawBody       = JSON.stringify(req.body);
@@ -42,50 +54,37 @@ module.exports = async (req, res) => {
   try {
     const payload = req.body;
 
-    // ── Payload parse (Trendyol formatı) ──────────────────────────
     const addr = payload.shipmentAddress || payload.invoiceAddress || {};
-
     const firstName    = addr.firstName || "";
     const lastName     = addr.lastName  || "";
     const customerName = `${firstName} ${lastName}`.trim() || "Trendyol Müşterisi";
-
     const phone    = addr.phone || addr.fullName || "Belirtilmemiş";
     const address  = [addr.address1, addr.address2].filter(Boolean).join(", ") || "Trendyol Siparişi";
     const district = addr.district || addr.city || "Belirtilmemiş";
 
-    // Ürün satırları: lines (v2) veya orderItems (v1)
     const lines = payload.lines || payload.orderItems || [];
-
     const items = lines.map(l => {
       const qty   = l.quantity || 1;
       const price = l.price ?? l.amount ?? 0;
-      return {
-        product:   l.productName || l.merchantSku || "Ürün",
-        qty,
-        unitPrice: price,
-        total:     qty * price,
-      };
+      return { product: l.productName || l.merchantSku || "Ürün", qty, unitPrice: price, total: qty * price };
     });
 
     const totalQty   = items.reduce((s, i) => s + i.qty, 0);
-    const orderTotal = payload.totalPrice ?? payload.grossAmount ??
-                       items.reduce((s, i) => s + i.total, 0);
-
-    const productLabel = items.length === 1
-      ? items[0].product
-      : `${items.length} çeşit ürün`;
+    const orderTotal = payload.totalPrice ?? payload.grossAmount ?? items.reduce((s, i) => s + i.total, 0);
+    const productLabel = items.length === 1 ? items[0].product : `${items.length} çeşit ürün`;
 
     const newOrder = {
+      tenantId,                          // URL'den gelen — multi-tenant izolasyon
       customerName,
       phone,
       address,
-      neighborhood: district,
-      product:      productLabel,
-      amount:       totalQty,
+      neighborhood:  district,
+      product:       productLabel,
+      amount:        totalQty,
       items,
       orderTotal,
-      totalDebt:    0,
-      paymentStatus: "havale",   // Trendyol siparişleri ön ödemeli
+      totalDebt:     0,
+      paymentStatus: "havale",
       status:        "beklemede",
       deliveryType:  "eveTeslim",
       source:        "trendyol",
@@ -96,8 +95,7 @@ module.exports = async (req, res) => {
     };
 
     const docRef = await db.collection("orders").add(newOrder);
-
-    console.log("Trendyol sipariş alındı:", docRef.id, customerName);
+    console.log(`Trendyol sipariş alındı [tenant:${tenantId}]:`, docRef.id, customerName);
     return res.status(200).json({ ok: true, id: docRef.id, customer: customerName });
 
   } catch (err) {

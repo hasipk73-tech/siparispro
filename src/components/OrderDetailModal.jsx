@@ -1,6 +1,15 @@
 import { useState } from "react";
+import { serverTimestamp } from "firebase/firestore";
 import { statusLabels } from "../data/mockData";
-import MapView from "./MapView";
+import { buildMapsUrl } from "./MapView";
+
+const IPTAL_NEDENLERI = [
+  "Müşteri vazgeçti",
+  "Adres yanlış",
+  "Ödeme sorunu",
+  "Kurye ulaşamadı",
+  "Diğer",
+];
 
 const PAYMENT_LABELS = { nakit: "Nakit", havale: "Havale", borc: "Borç" };
 
@@ -12,11 +21,13 @@ function computeOrderTotal(order) {
 
 export default function OrderDetailModal({ order, onClose, onUpdate }) {
   const [form, setForm] = useState({
-    status:       order.status,
-    amount:       order.amount,
-    totalDebt:    order.totalDebt,
-    lastDelivery: order.lastDelivery,
+    status:        order.status,
+    amount:        order.amount,
+    totalDebt:     order.totalDebt,
+    lastDelivery:  order.lastDelivery,
     paymentStatus: order.paymentStatus ?? null,
+    address:       order.address      || "",
+    neighborhood:  order.neighborhood || "",
   });
 
   // Borç kapatma state
@@ -51,6 +62,9 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
       updates.totalDebt = Number(form.totalDebt);
     }
 
+    updates.address      = form.address.trim();
+    updates.neighborhood = form.neighborhood.trim();
+
     onUpdate(order.id, updates);
     onClose();
   };
@@ -69,6 +83,18 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
     setForm(f => ({ ...f, paymentStatus: method }));
   };
 
+  const [iptalNedeni, setIptalNedeni] = useState(IPTAL_NEDENLERI[0]);
+
+  const handleIptal = () => {
+    onUpdate(order.id, {
+      status:      "iptal",
+      iptalNedeni,
+      iptalTarihi: serverTimestamp(),
+      iptalEden:   "admin",
+    });
+    onClose();
+  };
+
   const canSave =
     form.status !== "teslim_edildi" ||
     form.paymentStatus !== null;
@@ -82,7 +108,24 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
         </div>
 
         <div className="modal__body">
-          <MapView address={order.address} neighborhood={order.neighborhood} />
+
+          {/* DETAY: harita butonu — orijinal kayıt adresi, salt görüntüleme */}
+          <a
+            href={buildMapsUrl(order.address, order.neighborhood)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="kurye-maps-btn"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            Google Maps'te Aç
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: "auto" }}>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </a>
 
           <div className="info-row">
             <span className="info-label">Adres</span>
@@ -122,6 +165,47 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
           </div>
 
           <hr className="modal-divider" />
+
+          {/* GÜNCELLE: düzenlenebilir adres + canlı harita */}
+          <div className="form-row">
+            <div className="form-group" style={{ flex: 2 }}>
+              <label>Adres</label>
+              <input
+                type="text"
+                value={form.address}
+                onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                placeholder="Sokak, bina no..."
+              />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label>Mahalle</label>
+              <input
+                type="text"
+                value={form.neighborhood}
+                onChange={e => setForm(f => ({ ...f, neighborhood: e.target.value }))}
+                placeholder="Mahalle"
+              />
+            </div>
+          </div>
+
+          {/* Canlı harita önizlemesi — adres değiştikçe anında güncellenir */}
+          <a
+            href={buildMapsUrl(form.address, form.neighborhood)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="kurye-maps-btn"
+            style={{ marginBottom: "0.75rem" }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            Güncel Adresi Haritada Aç
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ marginLeft: "auto" }}>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </a>
 
           <div className="form-group">
             <label>Durum</label>
@@ -301,16 +385,44 @@ export default function OrderDetailModal({ order, onClose, onUpdate }) {
           )}
         </div>
 
+        {/* İptal bölümü — sadece aktif siparişlerde göster */}
+        {order.status !== "iptal" && (
+          <div className="iptal-section">
+            <div className="iptal-section__title">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+              </svg>
+              Siparişi İptal Et
+            </div>
+            <select
+              className="iptal-section__select"
+              value={iptalNedeni}
+              onChange={e => setIptalNedeni(e.target.value)}
+            >
+              {IPTAL_NEDENLERI.map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+            <button className="btn-iptal-et" onClick={handleIptal}>
+              İptal Et
+            </button>
+          </div>
+        )}
+
         <div className="modal__footer">
-          <button className="btn btn--outline" onClick={onClose}>İptal</button>
-          <button
-            className="btn btn--primary"
-            onClick={handleSave}
-            disabled={!canSave}
-            title={!canSave ? "Lütfen ödeme yöntemini seçin" : ""}
-          >
-            Kaydet
-          </button>
+          <button className="btn btn--outline" onClick={onClose}>Kapat</button>
+          {order.status !== "iptal" && (
+            <button
+              className="btn btn--primary"
+              onClick={handleSave}
+              disabled={!canSave}
+              title={!canSave ? "Lütfen ödeme yöntemini seçin" : ""}
+            >
+              Kaydet
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -1,35 +1,50 @@
 import { useState, useEffect } from "react";
-import { doc, onSnapshot, setDoc } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
-
-const TDOC = doc(db, "settings", "trendyol");
+import { useTenant } from "../tenant/TenantContext";
 
 export default function TrendyolSettings({ onClose }) {
+  const tenant = useTenant();
   const [form, setForm]     = useState({ sellerId: "", apiKey: "", apiSecret: "", webhookSecret: "", enabled: false });
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [saved,   setSaved]   = useState(false);
+  const [hata,    setHata]    = useState("");
 
   useEffect(() => {
-    const unsub = onSnapshot(TDOC, snap => {
-      if (snap.exists()) setForm(f => ({ ...f, ...snap.data() }));
-      setLoading(false);
-    });
+    if (!tenant?.id) { setLoading(false); return; }
+    // Ayarlar tenants/{id} belgesinin "trendyolSettings" alanında saklanır.
+    // Bu sayede mevcut rules (allow read: if true, write: if auth) yeterli.
+    const unsub = onSnapshot(
+      doc(db, "tenants", tenant.id),
+      snap => {
+        const data = snap.data()?.trendyolSettings;
+        if (data) setForm(f => ({ ...f, ...data }));
+        setLoading(false);
+      },
+      err => {
+        setHata(`Ayarlar yüklenemedi: ${err.code}`);
+        setLoading(false);
+      }
+    );
     return () => unsub();
-  }, []);
+  }, [tenant?.id]);
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
 
   const handleSave = async () => {
+    if (!tenant?.id) return;
     setSaving(true);
     try {
-      await setDoc(TDOC, form);
+      await updateDoc(doc(db, "tenants", tenant.id), { trendyolSettings: form });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } finally { setSaving(false); }
   };
 
-  const webhookUrl = `${window.location.origin}/api/trendyol-webhook`;
+  const webhookUrl = tenant?.id
+    ? `${window.location.origin}/api/trendyol-webhook?tenant=${tenant.id}`
+    : `${window.location.origin}/api/trendyol-webhook?tenant=TENANT_ID`;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -44,6 +59,8 @@ export default function TrendyolSettings({ onClose }) {
 
         {loading ? (
           <div style={{ padding: "2rem", textAlign: "center", color: "var(--gray-400)" }}>Yükleniyor…</div>
+        ) : hata ? (
+          <div style={{ padding: "2rem", color: "#dc2626", fontSize: "0.9rem" }}>{hata}</div>
         ) : (
           <div className="modal__body">
 
@@ -102,7 +119,11 @@ export default function TrendyolSettings({ onClose }) {
               </div>
               <div className="ty-webhook-box__url">{webhookUrl}</div>
               <div className="ty-webhook-box__steps">
-                <p>Trendyol Satıcı Paneli → Entegrasyonlar → Webhook Ayarları → Yeni Webhook ekle → yukarıdaki URL'yi girin.</p>
+                <p>
+                  Trendyol Satıcı Paneli → Entegrasyonlar → Webhook Ayarları → Yeni Webhook ekle
+                  → <strong>yukarıdaki URL'yi olduğu gibi yapıştırın</strong> (firma ID'si zaten içinde).
+                </p>
+                <p>Her firma kendi URL'ini kullanır — tek sunucu, sınırsız firma.</p>
                 <p>Webhook Secret varsa aynı değeri Vercel'de <code>TRENDYOL_WEBHOOK_SECRET</code> env var olarak da ekleyin.</p>
               </div>
             </div>
