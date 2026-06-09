@@ -70,6 +70,37 @@ body {
 .app { min-height: 100vh; }
 
 /* ── Header ── */
+/* ── Admin sekme çubuğu ── */
+.admin-sekme-bar {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem 0;
+  background: var(--white);
+  border-bottom: 2px solid var(--gray-200);
+  position: sticky;
+  top: 70px;
+  z-index: 90;
+  overflow-x: auto;
+}
+.admin-sekme-btn {
+  padding: 0.55rem 1.25rem;
+  border: none;
+  background: transparent;
+  color: var(--gray-500);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  white-space: nowrap;
+  transition: color .15s;
+}
+.admin-sekme-btn:hover { color: var(--gray-800); }
+.admin-sekme-btn--aktif {
+  color: var(--marka, #0284c7);
+  border-bottom-color: var(--marka, #0284c7);
+}
+
 .header {
   background: linear-gradient(135deg, var(--blue-900) 0%, var(--blue-700) 100%);
   padding: 0 1rem;

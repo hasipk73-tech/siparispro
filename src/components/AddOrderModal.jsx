@@ -12,8 +12,8 @@ const empty = {
   amount: 1,
 };
 
-export default function AddOrderModal({ onClose, onAdd }) {
-  const [form, setForm] = useState(empty);
+export default function AddOrderModal({ onClose, onAdd, defaultPhone = "" }) {
+  const [form, setForm] = useState(() => ({ ...empty, phone: defaultPhone }));
   const [errors, setErrors] = useState({});
 
   const set = (k, v) => {

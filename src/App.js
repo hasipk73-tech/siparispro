@@ -17,8 +17,12 @@ import WhatsAppSettings from "./components/WhatsAppSettings";
 import StockModal from "./components/StockModal";
 import KuryePanel from "./components/KuryePanel";
 import TrendyolSettings from "./components/TrendyolSettings";
+import IVRAramalar from "./components/IVRAramalar";
+import IVRAyarlar from "./components/IVRAyarlar";
 import { useWhatsApp } from "./hooks/useWhatsApp";
 import SuperAdminPanel from "./superadmin/SuperAdminPanel";
+import StokAlimModul from "./components/StokAlimModul";
+import SatisAnalizi from "./components/SatisAnalizi";
 import { useSetTenant, useTenant } from "./tenant/TenantContext";
 import { ozellikAcik } from "./utils/ozellikler";
 
@@ -65,16 +69,19 @@ export default function App() {
     gunSonuStats,
   } = useOrders(handleNewOrder);
 
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddModal,   setShowAddModal]   = useState(false);
+  const [addModalPhone,  setAddModalPhone]  = useState("");
   const [showGunSonu, setShowGunSonu] = useState(false);
   const neighborhoods = Object.keys(grouped).sort();
 
   const { closedIds, toggleProduct } = useStock();
 
   const [activeTab,          setActiveTab]         = useState("catalog");
+  const [adminSekme,         setAdminSekme]        = useState("siparisler");
   const [showWaSettings,     setShowWaSettings]     = useState(false);
   const [showStockModal,     setShowStockModal]     = useState(false);
   const [showTrendyolModal,  setShowTrendyolModal]  = useState(false);
+  const [showIVRAyarlar,     setShowIVRAyarlar]     = useState(false);
 
   const handleLogin  = (authData) => { setAuth(authData); setActiveTab("catalog"); };
   const handleLogout = () => { setTenant(null); setAuth(null); };
@@ -233,6 +240,17 @@ export default function App() {
                 <span className="btn-trendyol__text">Trendyol</span>
               </button>
             )}
+            {ozellikAcik(tenant, "ivr") && (
+              <button
+                className="btn-trendyol"
+                onClick={() => setShowIVRAyarlar(true)}
+                title="IVR / Telesekreter"
+                style={{ background:"#7c3aed" }}
+              >
+                <span style={{ fontSize:"0.85rem" }}>📞</span>
+                <span className="btn-trendyol__text">IVR</span>
+              </button>
+            )}
             <button
               className={`btn-whatsapp${waSettings.enabled ? " btn-whatsapp--active" : ""}`}
               onClick={() => setShowWaSettings(true)}
@@ -282,6 +300,54 @@ export default function App() {
 
       <NotificationBanner permission={permission} onRequest={requestPermission} />
 
+      {/* ── Admin sekme çubuğu ── */}
+      <div className="admin-sekme-bar">
+        <button
+          className={`admin-sekme-btn${adminSekme === "siparisler" ? " admin-sekme-btn--aktif" : ""}`}
+          onClick={() => setAdminSekme("siparisler")}
+        >Siparişler</button>
+        {ozellikAcik(tenant, "stokAlim") && (
+          <button
+            className={`admin-sekme-btn${adminSekme === "stokAlim" ? " admin-sekme-btn--aktif" : ""}`}
+            onClick={() => setAdminSekme("stokAlim")}
+          >Stok Alımları</button>
+        )}
+        {ozellikAcik(tenant, "satisAnalizi") && (
+          <button
+            className={`admin-sekme-btn${adminSekme === "satisAnalizi" ? " admin-sekme-btn--aktif" : ""}`}
+            onClick={() => setAdminSekme("satisAnalizi")}
+          >Satış Analizi</button>
+        )}
+        {ozellikAcik(tenant, "ivr") && (
+          <button
+            className={`admin-sekme-btn${adminSekme === "aramalar" ? " admin-sekme-btn--aktif" : ""}`}
+            onClick={() => setAdminSekme("aramalar")}
+          >Aramalar</button>
+        )}
+      </div>
+
+      {/* ── Stok Alımları ── */}
+      {adminSekme === "stokAlim" && <StokAlimModul />}
+
+      {/* ── Satış Analizi ── */}
+      {adminSekme === "satisAnalizi" && <SatisAnalizi orders={orders} />}
+
+      {/* ── Aramalar (IVR) ── */}
+      {adminSekme === "aramalar" && ozellikAcik(tenant, "ivr") && (
+        <IVRAramalar
+          onSiparisGit={(musteriAdi) => {
+            setAdminSekme("siparisler");
+            if (musteriAdi) setSearchTerm(musteriAdi);
+          }}
+          onYeniMusteri={(telefon) => {
+            setAddModalPhone(telefon || "");
+            setShowAddModal(true);
+          }}
+        />
+      )}
+
+      {/* ── Siparişler (mevcut görünüm) ── */}
+      {adminSekme === "siparisler" && (
       <main className="main">
         <div className="stats-grid">
           <StatCard icon="📦" label="Toplam Sipariş" value={stats.total} color="blue" />
@@ -363,11 +429,13 @@ export default function App() {
           </>
         )}
       </main>
+      )}
 
       {showAddModal && (
         <AddOrderModal
-          onClose={() => setShowAddModal(false)}
+          onClose={() => { setShowAddModal(false); setAddModalPhone(""); }}
           onAdd={addOrder}
+          defaultPhone={addModalPhone}
         />
       )}
 
@@ -389,6 +457,10 @@ export default function App() {
 
       {ozellikAcik(tenant, "trendyol") && showTrendyolModal && (
         <TrendyolSettings onClose={() => setShowTrendyolModal(false)} />
+      )}
+
+      {ozellikAcik(tenant, "ivr") && showIVRAyarlar && (
+        <IVRAyarlar onClose={() => setShowIVRAyarlar(false)} />
       )}
 
       {ozellikAcik(tenant, "stokTakibi") && showStockModal && (

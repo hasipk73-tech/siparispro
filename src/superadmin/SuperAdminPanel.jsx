@@ -10,12 +10,14 @@ import { db, auth } from "../firebase";
 import { VARSAYILAN_OZELLIKLER } from "../utils/ozellikler";
 
 const OZELLIKLER = [
-  { key: "trendyol",    label: "Trendyol"    },
-  { key: "getir",       label: "Getir"       },
-  { key: "yemeksepeti", label: "YemekSepeti" },
-  { key: "ivr",         label: "IVR"         },
-  { key: "odeme",       label: "Ödeme"       },
-  { key: "stokTakibi",  label: "Stok Takibi" },
+  { key: "trendyol",     label: "Trendyol"      },
+  { key: "getir",        label: "Getir"         },
+  { key: "yemeksepeti",  label: "YemekSepeti"   },
+  { key: "ivr",          label: "IVR"           },
+  { key: "odeme",        label: "Ödeme"         },
+  { key: "stokTakibi",   label: "Stok Takibi"   },
+  { key: "stokAlim",     label: "Stok Alım"     },
+  { key: "satisAnalizi", label: "Satış Analizi" },
 ];
 
 const BOSLUK_FORM = {
@@ -239,12 +241,40 @@ export default function SuperAdminPanel() {
     yukle();
   }
 
+  const [ivrDuzId,   setIvrDuzId]   = useState(null);
+  const [ivrForm,    setIvrForm]    = useState({});
+  const [ivrKayit,   setIvrKayit]   = useState(false);
+
   function duzenlemeBaslat(t) {
     setDuzId(t.id);
     setDuzForm({
       ad: t.ad || "", slug: t.slug || "", domain: t.domains?.[0] || "",
       bolge: t.bolge || "", anaRenk: t.marka?.anaRenk || "#0284c7", logo: t.marka?.logo || "",
     });
+  }
+
+  function ivrDuzenlemeBaslat(t) {
+    setIvrDuzId(t.id);
+    setIvrForm({ karsilamaMetni: t.ivrAyarlari?.karsilamaMetni || "" });
+  }
+
+  async function ivrKaydet(t) {
+    setIvrKayit(true);
+    try {
+      await updateDoc(doc(db, "tenants", t.id), {
+        "ivrAyarlari.karsilamaMetni": ivrForm.karsilamaMetni.trim(),
+      });
+      setTenantlar(prev => prev.map(x =>
+        x.id === t.id
+          ? { ...x, ivrAyarlari: { ...x.ivrAyarlari, karsilamaMetni: ivrForm.karsilamaMetni.trim() } }
+          : x
+      ));
+      setIvrDuzId(null);
+    } catch (e) {
+      alert("Kayıt hatası: " + e.message);
+    } finally {
+      setIvrKayit(false);
+    }
   }
 
   async function isletmeGuncelle(t) {
@@ -501,6 +531,85 @@ export default function SuperAdminPanel() {
                     })}
                   </div>
                 </div>
+
+                {/* IVR Ayarları — sadece ivr özelliği açıksa */}
+                {(t.ozellikler?.ivr ?? VARSAYILAN_OZELLIKLER.ivr) && (
+                  <div style={{ borderTop:`1px solid ${C.border}`, marginTop:"1.25rem", paddingTop:"1.25rem" }}>
+                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between",
+                      marginBottom:"0.75rem" }}>
+                      <p style={{ fontSize:"0.8rem", fontWeight:600, color: C.slate5,
+                        textTransform:"uppercase", letterSpacing:"0.05em", margin:0 }}>
+                        IVR / Telesekreter
+                      </p>
+                      {ivrDuzId !== t.id && (
+                        <Btn onClick={() => ivrDuzenlemeBaslat(t)} variant="sky" small>
+                          Düzenle
+                        </Btn>
+                      )}
+                    </div>
+
+                    {/* Webhook URL */}
+                    <div style={{ marginBottom:"0.75rem" }}>
+                      <p style={{ fontSize:"0.75rem", color: C.slate5, margin:"0 0 0.3rem" }}>
+                        Twilio Webhook URL
+                      </p>
+                      <div style={{ display:"flex", gap:"0.5rem", alignItems:"center" }}>
+                        <input
+                          readOnly
+                          value={`https://DOMAIN/api/ivr-webhook?tenant=${t.id}`}
+                          style={{
+                            flex:1, padding:"0.45rem 0.75rem", borderRadius:7,
+                            border:`1px solid ${C.borderSky}`, background: C.skyLight,
+                            fontSize:"0.75rem", fontFamily:"monospace", color: C.skyText,
+                            outline:"none",
+                          }}
+                        />
+                        <button
+                          onClick={() => navigator.clipboard.writeText(`https://DOMAIN/api/ivr-webhook?tenant=${t.id}`).catch(()=>{})}
+                          style={{
+                            padding:"0.45rem 0.75rem", borderRadius:7,
+                            border:`1px solid ${C.borderSky}`, background: C.skyLight,
+                            color: C.skyText, fontSize:"0.75rem", cursor:"pointer",
+                          }}
+                        >
+                          Kopyala
+                        </button>
+                      </div>
+                      <p style={{ margin:"0.3rem 0 0", fontSize:"0.72rem", color: C.slate4 }}>
+                        DOMAIN kısmını gerçek deploy URL'iniz ile değiştirin.
+                      </p>
+                    </div>
+
+                    {/* Karşılama metni düzenleme */}
+                    {ivrDuzId === t.id ? (
+                      <div>
+                        <Inp
+                          label="Karşılama Metni"
+                          value={ivrForm.karsilamaMetni}
+                          placeholder="{firmaAdi}'na hoş geldiniz, {musteriAdi}."
+                          onChange={e => setIvrForm({ ...ivrForm, karsilamaMetni: e.target.value })}
+                        />
+                        <p style={{ margin:"0.3rem 0 0.75rem", fontSize:"0.72rem", color: C.slate4 }}>
+                          Değişkenler: {"{firmaAdi}"}, {"{musteriAdi}"}
+                        </p>
+                        <div style={{ display:"flex", gap:"0.5rem" }}>
+                          <Btn onClick={() => ivrKaydet(t)} variant="primary" small>
+                            {ivrKayit ? "Kaydediliyor…" : "Kaydet"}
+                          </Btn>
+                          <Btn onClick={() => setIvrDuzId(null)} variant="ghost" small>İptal</Btn>
+                        </div>
+                      </div>
+                    ) : (
+                      t.ivrAyarlari?.karsilamaMetni && (
+                        <p style={{ fontSize:"0.82rem", color: C.slate7,
+                          background: C.skyLight, border:`1px solid ${C.borderSky}`,
+                          borderRadius:7, padding:"0.5rem 0.75rem", margin:0 }}>
+                          "{t.ivrAyarlari.karsilamaMetni}"
+                        </p>
+                      )
+                    )}
+                  </div>
+                )}
 
               </div>
             );

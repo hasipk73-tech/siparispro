@@ -1,5 +1,5 @@
 rules_version = '2';
-// firestore.rules — SiparisPro multi-tenant (tek koleksiyon: orders)
+// firestore.rules — SiparisPro multi-tenant (orders, stokAlimlar, aramalar)
 //
 // İzolasyonu sunucuda zorlar. Frontend filtresi tek başına güvenlik DEĞİLDİR.
 // Her order kaydında tenantId olur; kullanıcı sadece kendi tenant'ının
@@ -44,6 +44,25 @@ service cloud.firestore {
       // auth'lu kullanıcı (tenantId korunuyor — değiştirilemiyor)
       allow update, delete: if ayniTenant() || isSuperAdmin()
                             || (request.auth != null && resource.data.tenantId != null);
+    }
+
+    // Stok / palet alım kayıtları
+    match /stokAlimlar/{kayitId} {
+      allow read:          if ayniTenant() || isSuperAdmin();
+      allow create:        if request.auth != null
+                           && request.resource.data.tenantId is string
+                           && request.resource.data.tenantId.size() > 0;
+      allow update, delete: if ayniTenant() || isSuperAdmin();
+    }
+
+    // Arama kayıtları (IVR) — admin SDK server-side yazar, client okur
+    match /aramalar/{aramaId} {
+      allow read:   if ayniTenant() || isSuperAdmin();
+      allow create: if request.auth != null
+                    && request.resource.data.tenantId is string
+                    && request.resource.data.tenantId.size() > 0;
+      allow update: if ayniTenant() || isSuperAdmin();
+      allow delete: if isSuperAdmin();
     }
 
     // Kullanıcılar
